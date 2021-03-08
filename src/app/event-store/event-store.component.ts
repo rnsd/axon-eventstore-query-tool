@@ -10,6 +10,9 @@ import {DateSearchOption} from "../domain/date-search-option";
 import {TimeUnit} from "../domain/time-unit";
 import {DateRange} from "../domain/date-range";
 import {MatTableDataSource} from "@angular/material/table";
+import {MatTabChangeEvent} from "@angular/material/tabs";
+import {MatSort} from "@angular/material/sort";
+import {merge} from "rxjs";
 
 @Component({
   selector: 'app-event-store',
@@ -29,6 +32,9 @@ export class EventStoreComponent implements OnInit {
   totalHits: number;
   columnsToDisplay = ['payloadSimpleType', 'payloadRevision', 'timeStamp', 'eventIdentifier', 'aggregateIdentifier', 'type', 'globalIndex', 'sequenceNumber']
   expandedElement: DomainEvent | null;
+  fromDatePicker;
+  toDatePicker;
+  selected = 'STG';
 
   public readonly dateQuickSearchOptions: DateSearchOption[] = [
     new DateSearchOption("Last 15 minutes", 15, TimeUnit.MINUTE),
@@ -44,6 +50,7 @@ export class EventStoreComponent implements OnInit {
   ]
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
+  @ViewChild(MatSort) sort: MatSort;
 
   searchForm = this.formBuilder.group(
     {
@@ -51,7 +58,11 @@ export class EventStoreComponent implements OnInit {
       eventIdentifier: null,
       payloadSimpleType: null,
       payloadContent: null,
-      quickSearchDescription: null
+      quickSearchDescription: null,
+      fromDatePicker: null,
+      toDatePicker: null,
+      absoluteFromDate: null,
+      absoluteToDate: null
     }
   )
 
@@ -70,7 +81,10 @@ export class EventStoreComponent implements OnInit {
   }
 
   ngAfterViewInit() {
-    this.paginator.page
+
+    this.sort.sortChange.subscribe(() => this.paginator.pageIndex = 0);
+
+    merge(this.sort.sortChange, this.paginator.page)
       .pipe(
         tap(() => this.loadEventsPage())
       )
@@ -78,7 +92,7 @@ export class EventStoreComponent implements OnInit {
   }
 
   loadEventsPage() {
-    let dateRange = this.getQuickSearchDateRange();
+    let dateRange = this.getDateRange();
 
     let searchResultObservable = this.domainEventService.searchEvents(
       this.searchForm.get('eventIdentifier').value,
@@ -88,7 +102,7 @@ export class EventStoreComponent implements OnInit {
       dateRange != null ? dateRange.to : null,
       EventStoreComponent.formatPayloadContentSearchParam(this.searchForm.get('payloadContent').value),
       '',
-      'asc',
+      this.sort.direction,
       this.paginator.pageIndex,
       this.paginator.pageSize);
 
@@ -112,38 +126,52 @@ export class EventStoreComponent implements OnInit {
   }
 
   onSubmit() {
-    this.loadEventsPage()
+    this.paginator.firstPage();
+    this.loadEventsPage();
   }
 
   onReset() {
     this.searchForm.reset();
   }
 
-  private getQuickSearchDateRange(): DateRange {
+  private getDateRange(): DateRange {
     let quickSearchDescription = this.searchForm.get('quickSearchDescription');
-    let quickSearchOption: DateSearchOption = quickSearchDescription.value == null || quickSearchDescription.value.empty ? null : quickSearchDescription.value[0];
+    let quickSearchOption: DateSearchOption = (quickSearchDescription.value == null || quickSearchDescription.value.empty) ? null : quickSearchDescription.value[0];
     if (quickSearchOption == null) {
-      return null;
-
+      let absoluteFromDate = this.searchForm.get('absoluteFromDate').value;
+      let absoluteToDate = this.searchForm.get('absoluteToDate').value;
+      if (absoluteFromDate != null && absoluteToDate != null) {
+        return new DateRange(absoluteFromDate, absoluteToDate);
+      }
+    } else {
+      let quantity = quickSearchOption.quantity;
+      let unit = quickSearchOption.unit;
+      let toDate = new Date();
+      let fromDate = new Date(toDate.getTime());
+      if (unit == TimeUnit.MINUTE) {
+        fromDate = new Date(fromDate.setMinutes(toDate.getMinutes() - quantity));
+      } else if (unit == TimeUnit.HOUR) {
+        fromDate = new Date(fromDate.setHours(toDate.getHours() - quantity));
+      } else if (unit == TimeUnit.DAY) {
+        fromDate = new Date(fromDate.setDate(toDate.getDate() - quantity));
+      } else if (unit == TimeUnit.MONTH) {
+        fromDate = new Date(fromDate.setMonth(toDate.getMonth() - quantity));
+      } else if (unit == TimeUnit.YEAR) {
+        fromDate = new Date(fromDate.setFullYear(toDate.getFullYear() - quantity));
+      }
+      return new DateRange(fromDate, toDate);
     }
+  }
 
-    let quantity = quickSearchOption.quantity;
-    let unit = quickSearchOption.unit;
-
-    let toDate = new Date();
-    let fromDate = new Date(toDate.getTime());
-    if (unit == TimeUnit.MINUTE) {
-      fromDate = new Date(fromDate.setMinutes(toDate.getMinutes() - quantity));
-    } else if (unit == TimeUnit.HOUR) {
-      fromDate = new Date(fromDate.setHours(toDate.getHours() - quantity));
-    } else if (unit == TimeUnit.DAY) {
-      fromDate = new Date(fromDate.setDate(toDate.getDate() - quantity));
-    } else if (unit == TimeUnit.MONTH) {
-      fromDate = new Date(fromDate.setMonth(toDate.getMonth() - quantity));
-    } else if (unit == TimeUnit.YEAR) {
-      fromDate = new Date(fromDate.setFullYear(toDate.getFullYear() - quantity));
+  tabClick(event: MatTabChangeEvent) {
+    if (event.tab.textLabel == 'Absolute Time Range') {
+      this.searchForm.get('quickSearchDescription').setValue(null);
+    } else {
+      this.fromDatePicker = null;
+      this.toDatePicker = null;
+      this.searchForm.get('absoluteFromDate').setValue(null);
+      this.searchForm.get('absoluteToDate').setValue(null);
     }
-    return new DateRange(fromDate, toDate);
   }
 
 

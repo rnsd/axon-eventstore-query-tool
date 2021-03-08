@@ -9,14 +9,16 @@ import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {MatTableModule} from "@angular/material/table";
 import {MatInputModule} from "@angular/material/input";
-import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 import {MatSortModule} from "@angular/material/sort";
 import {MatPaginatorModule} from "@angular/material/paginator";
 import {MatButtonModule} from "@angular/material/button";
 import {MatTabsModule} from "@angular/material/tabs";
 import {MatListModule} from "@angular/material/list";
 import {MatSelectModule} from "@angular/material/select";
-import {MatDividerModule} from "@angular/material/divider";
+import {NgxMatDatetimePickerModule, NgxMatNativeDateModule, NgxMatTimepickerModule} from "@angular-material-components/datetime-picker";
+import {MatDatepickerModule} from "@angular/material/datepicker";
+import {MatIconModule} from "@angular/material/icon";
+import {MatToolbar, MatToolbarModule} from "@angular/material/toolbar";
 
 @NgModule({
   declarations: [
@@ -27,19 +29,26 @@ import {MatDividerModule} from "@angular/material/divider";
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
+
     FormsModule,
     ReactiveFormsModule,
-    BrowserAnimationsModule,
-    MatTableModule,
-    MatInputModule,
     MatButtonModule,
+
+    BrowserAnimationsModule,
+
+    MatTableModule,
+    MatIconModule,
+    MatInputModule,
     MatPaginatorModule,
     MatSortModule,
-    MatProgressSpinnerModule,
     MatTabsModule,
+    MatToolbarModule,
     MatListModule,
     MatSelectModule,
-    MatDividerModule
+    MatDatepickerModule,
+    NgxMatDatetimePickerModule,
+    NgxMatTimepickerModule,
+    NgxMatNativeDateModule
   ],
   providers: [],
   bootstrap: [AppComponent]
